@@ -18,7 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libsnappy-dev \
         protobuf-compiler \
         python-dev \
-        python-numpy \
         python-pip \
         python-scipy && \
     rm -rf /var/lib/apt/lists/*
@@ -27,13 +26,15 @@ ENV CAFFE_ROOT=/opt/caffe
 WORKDIR $CAFFE_ROOT
 
 # FIXME: clone a specific git tag and use ARG instead of ENV once DockerHub supports this.
-ARG CAFFE_VERSION=master
-ENV CAFFE_VERSION=${CLONE_TAG}
+ARG CAFFE_VERSION=v0.16.4
+ENV CAFFE_VERSION=${CAFFE_VERSION}
 
-RUN git clone -b ${CLONE_TAG} --depth 1 https://github.com/myelintek/caffe.git . && \
-    for req in $(cat python/requirements.txt) pydot; do pip install $req; done && \
+RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/myelintek/caffe.git . && \
+    pip install --upgrade pip && \
+    for req in setuptools $(cat python/requirements.txt) pydot; do pip install $req; done && \
+    git clone https://github.com/myelintek/nccl.git && cd nccl && make -j install && cd .. && rm -rf nccl && \
     mkdir build && cd build && \
-    cmake -DUSE_CUDNN=1 .. && \
+    cmake -DUSE_CUDNN=1 -DUSE_NCCL=1 .. && \
     make -j"$(nproc)"
 
 ENV PYCAFFE_ROOT $CAFFE_ROOT/python

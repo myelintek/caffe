@@ -1,0 +1,4 @@
+
+nvidia-docker build -t myelintek/caffe:latest .
+
+nvidia-docker build --build-arg CAFFE_VERSION=v0.16.4 -t myelintek/caffe:v0.16.4 .
