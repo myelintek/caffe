@@ -4,6 +4,7 @@ MAINTAINER simon.s.chuang@gmail.com
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
+        doxygen \
         git \
         wget \
         libatlas-base-dev \
@@ -29,10 +30,13 @@ WORKDIR $CAFFE_ROOT
 ARG CAFFE_VERSION=v0.16.4
 ENV CAFFE_VERSION=${CAFFE_VERSION}
 
+ENV NCCL_DEBUG=VERSION
+
 RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/myelintek/caffe.git . && \
     pip install --upgrade pip && \
     for req in setuptools $(cat python/requirements.txt) pydot; do pip install $req; done && \
-    git clone https://github.com/myelintek/nccl.git && cd nccl && make -j install && cd .. && rm -rf nccl && \
+    dpkg -i docker/standalone/gpu/libnccl2.deb && \
+    dpkg -i docker/standalone/gpu/libnccl-dev.deb && \
     mkdir build && cd build && \
     cmake -DUSE_CUDNN=1 -DUSE_NCCL=1 .. && \
     make -j"$(nproc)"
