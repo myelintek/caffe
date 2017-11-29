@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         protobuf-compiler \
         python-dev \
         python-pip \
-        python-scipy && \
+        python-scipy \
+        vim && \
     rm -rf /var/lib/apt/lists/*
 
 ENV CAFFE_ROOT=/opt/caffe
@@ -32,11 +33,14 @@ ENV CAFFE_VERSION=${CAFFE_VERSION}
 
 ENV NCCL_DEBUG=VERSION
 
+RUN wget -O /opt/libnccl2.deb https://www.dropbox.com/s/n1vx60mqj8hi2ij/libnccl2.deb?dl=0 && \
+    wget -O /opt/libnccl-dev.deb https://www.dropbox.com/s/lkh26o02vq6802y/libnccl-dev.deb?dl=0 && \
+    dpkg -i /opt/libnccl2.deb && \
+    dpkg -i /opt/libnccl-dev.deb
+
 RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/myelintek/caffe.git . && \
     pip install --upgrade pip && \
     for req in setuptools $(cat python/requirements.txt) pydot; do pip install $req; done && \
-    dpkg -i docker/standalone/gpu/libnccl2.deb && \
-    dpkg -i docker/standalone/gpu/libnccl-dev.deb && \
     mkdir build && cd build && \
     cmake -DUSE_CUDNN=1 -DUSE_NCCL=1 .. && \
     make -j"$(nproc)"

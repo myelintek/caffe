@@ -1,4 +1,3 @@
-# FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 FROM nvidia/cuda:8.0-cudnn7-devel-ubuntu16.04
 MAINTAINER simon.s.chuang@gmail.com
 
@@ -21,7 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         protobuf-compiler \
         python-dev \
         python-pip \
-        python-scipy && \
+        python-scipy \
+        vim && \
     rm -rf /var/lib/apt/lists/*
 
 ENV CAFFE_ROOT=/opt/caffe
@@ -37,10 +37,8 @@ RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/myelintek/caffe.g
     pip install --upgrade pip && \
     for req in setuptools $(cat python/requirements.txt) pydot; do pip install $req; done && \
     git clone -b cuda8 https://github.com/myelintek/nccl.git && cd nccl && make -j install && cd .. && rm -rf nccl && \
-    #dpkg -i docker/standalone/gpu/libnccl2.deb && \
-    #dpkg -i docker/standalone/gpu/libnccl-dev.deb && \
     mkdir build && cd build && \
-    cmake -DUSE_CUDNN=1 -DUSE_NCCL=1 -DCUDA_ARCH_NAME="All" .. && \
+    cmake -DUSE_CUDNN=1 -DUSE_NCCL=1 -DCUDA_ARCH_NAME="Pascal" .. && \
     make -j"$(nproc)"
 
 ENV PYCAFFE_ROOT $CAFFE_ROOT/python
