@@ -42,14 +42,17 @@ RUN wget -O /opt/libnccl2.deb https://www.dropbox.com/s/n1vx60mqj8hi2ij/libnccl2
     dpkg -i /opt/libnccl2.deb && \
     dpkg -i /opt/libnccl-dev.deb
 
-RUN wget -O /opt/protobuf-python-3.2.0.tar.gz https://github.com/google/protobuf/releases/download/v3.2.0/protobuf-python-3.2.0.tar.gz && \
-    tar -zxvf /opt/protobuf-python-3.2.0.tar.gz -C /opt/ && \
-    cd /opt/protobuf-3.2.0 && \
-    ./configure && \
-    make -j"$(nproc)" && \
-    make check && \
-    make install && \
-    ldconfig
+# RUN wget -O /opt/protobuf-python-3.2.0.tar.gz https://github.com/google/protobuf/releases/download/v3.2.0/protobuf-python-3.2.0.tar.gz && \
+#     tar -zxvf /opt/protobuf-python-3.2.0.tar.gz -C /opt/ && \
+#     cd /opt/protobuf-3.2.0 && \
+#     ./configure && \
+#     make -j"$(nproc)" && \
+#     make check && \
+#     make install && \
+#     ldconfig
+
+## https://github.com/BVLC/caffe/issues/5357
+RUN pip install --upgrade protobuf==3.1.0.post1
 
 RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/myelintek/caffe.git . && \
     pip install --upgrade pip && \
