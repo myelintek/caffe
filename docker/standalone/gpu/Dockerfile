@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         cmake \
         cython \
         doxygen \
-        easydict \
         g++ \
         git \
         wget \
