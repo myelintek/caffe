@@ -4,7 +4,9 @@ MAINTAINER simon.s.chuang@gmail.com
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
+        cython \
         doxygen \
+        easydict \
         g++ \
         git \
         wget \
@@ -20,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libtool \
         make \
         python-dev \
+        python-opencv \
         python-pip \
         python-scipy \
         unzip \
@@ -44,7 +47,7 @@ RUN wget -O /opt/protobuf-python-3.2.0.tar.gz https://github.com/google/protobuf
     tar -zxvf /opt/protobuf-python-3.2.0.tar.gz -C /opt/ && \
     cd /opt/protobuf-3.2.0 && \
     ./configure && \
-    make && \
+    make -j"$(nproc)" && \
     make check && \
     make install && \
     ldconfig
