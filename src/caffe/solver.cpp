@@ -28,7 +28,7 @@ SolverAction::Enum Solver::GetRequestedAction() {
 Solver::Solver(const SolverParameter& param, size_t rank, const Solver* root_solver)
     : param_(param), data_type_(param_.solver_data_type()), iter_(0), id_(0), net_(),
       callback_(nullptr), root_solver_(root_solver), rank_(rank), requested_early_exit_(false),
-      iteration_timer_(), test_timer_(), iterations_last_(0), iterations_restored_(0) {
+      iteration_timer_(), test_timer_(), iterations_last_(0), iterations_restored_(0), rate_(0) {
   Init();
 }
 
@@ -38,6 +38,7 @@ Solver::Solver(const string& param_file, size_t rank, const Solver* root_solver)
 Solver::~Solver() {}
 
 void Solver::Init() {
+  cudaGetDevice(&de);
   LOG(INFO) << "Solver data type: " << Type_Name(data_type_);
   CHECK(Caffe::root_solver() || root_solver_)
       << "root_solver_ needs to be set for all non-root solvers";
@@ -236,8 +237,17 @@ void Solver::Step(int iters) {
 
   reduce_thread_.reset(new boost::thread(&Solver::Reduce, this,
       Caffe::current_device(), mode, random_seed, solver_count, root_solver));
-
+  if(param_.test_initialization()){
+      TestAll(0, use_multi_gpu_testing);
+      callback_soft_barrier();
+      LOG_IF(INFO, Caffe::root_solver()) << mgpu_str << "Initial Test completed";
+  }
+  if(param_.max_iter() > 0)
   while (iter_ < stop_iter) {
+
+    log_iter_ = iter_ * param_.iter_size();
+    LOG(WARNING) <<"["<<de<<"]["<<log_iter_<<"][T][Iteration]START##";
+
     if (param_.snapshot_diff()) {
       net_->ClearParamDiffs();
     }  // we clean them in ApplyUpdate otherwise
@@ -245,11 +255,6 @@ void Solver::Step(int iters) {
     // Just started or restored?
     const bool first_loop = iter_ == 0 || iterations_last_ < 0;
     if (iter_ == 0) {
-      if (TestAll(1, use_multi_gpu_testing)) {
-        break;
-      }
-      callback_soft_barrier();
-      LOG_IF(INFO, Caffe::root_solver()) << mgpu_str << "Initial Test completed";
     } else if (param_.test_interval()
         && iter_ % param_.test_interval() == 0
         && iterations_last_ >= 0) {
@@ -282,6 +287,12 @@ void Solver::Step(int iters) {
 
     iteration_start_signal();
     for (int i = 0; i < param_.iter_size(); ++i) {
+      rate_ = GetLearningRate();
+
+      if(i){LOG(WARNING) <<"["<<de<<"]["<<log_iter_<<"][T][Iteration]START##";}
+      //else{LOG_IF(WARNING, Caffe::root_solver()) << "[" <<log_iter_ << "][Learning_rate] " << rate_;}
+      // go out form sdg_solver
+
       loss += net_->ForwardBackward(i + 1 == param_.iter_size());
 
       if (i == 0) {
@@ -289,6 +300,10 @@ void Solver::Step(int iters) {
           iter0_flag_.set();
           net_->wait_layers_init();
         }
+      }
+      if(i + 1 != param_.iter_size()){
+        LOG(WARNING) <<"["<<de<<"]["<<log_iter_<<"][T][Iteration]END##";
+        log_iter_++;
       }
     }
     loss /= param_.iter_size();
@@ -327,6 +342,15 @@ void Solver::Step(int iters) {
           if (loss_weight) {
             loss_msg_stream << " (* " << loss_weight
                 << " = " << (loss_weight * result_vec[k]) << " loss)";
+            LOG_IF(ERROR, Caffe::root_solver()) <<
+                "[Train][" << log_iter_ << "]" <<
+                "[Loss] " << output_name << " = " << result_vec[k] <<
+                loss_msg_stream.str();
+          }
+          else {
+            LOG_IF(ERROR, Caffe::root_solver()) <<
+                "[Train][" << log_iter_ << "]" <<
+                "[Accuracy] " << output_name << " = " << result_vec[k];
           }
           LOG_IF(INFO, Caffe::root_solver()) << "    Train net output #"
               << score_index++ << ": " << output_name << " = "
@@ -338,6 +362,8 @@ void Solver::Step(int iters) {
     }
     // Increment the internal iter_ counter -- its value should always indicate
     // the number of times the weights have been updated.
+    //LOG_IF(WARNING, Caffe::root_solver()) << "Iteration " << iter_  << ", loss = " << smoothed_loss_;
+
     ++iter_;
 
     SolverAction::Enum request = GetRequestedAction();
@@ -354,6 +380,7 @@ void Solver::Step(int iters) {
       // Break out of training loop.
       break;
     }
+    LOG(WARNING) <<"["<<de<<"]["<< log_iter_ <<"][T][Iteration]END##";
   }
   Finalize();
 }
@@ -424,7 +451,7 @@ bool Solver::Solve(const char* resume_file) {
   // training, for the train net we only run a forward pass as we've already
   // updated the parameters "max_iter" times -- this final pass is only done to
   // display the loss, which is computed in the forward pass.
-  if (this->display()) {
+  if (this->display() && param_.max_iter() > 0) {
     int average_loss = this->param_.average_loss();
     float loss;
     net_->Forward(&loss);
@@ -538,6 +565,13 @@ bool Solver::Test(const int test_net_id, const int iters, bool use_multi_gpu) {
     if (loss_weight) {
       loss_msg_stream << " (* " << loss_weight
           << " = " << (loss_weight * mean_score) << " loss)";
+      LOG_IF(ERROR, Caffe::root_solver()) << "[Test][" << iter_ << "]" <<
+                "[Loss] " << output_name << " = " << mean_score <<
+                loss_msg_stream.str();
+    }
+    else{
+      LOG_IF(ERROR, Caffe::root_solver()) << "[Test][" << iter_ << "]" <<
+                "[Accuracy] " << output_name << " = " << mean_score;
     }
     LOG_IF(INFO, Caffe::root_solver()) << "    Test net output #" << i <<
         ": " << output_name << " = " << mean_score << loss_msg_stream.str();

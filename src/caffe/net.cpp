@@ -57,6 +57,7 @@ Net::~Net() {
 }
 
 void Net::Init(const NetParameter& in_param) {
+  cudaGetDevice(&de);
   CHECK(Caffe::root_solver() || root_net_)
       << "root_net_ needs to be set for all non-root solvers";
   // Set phase from the state.
@@ -671,11 +672,19 @@ float Net::ForwardFromTo(int start, int end) {
   CHECK_GE(start, 0);
   CHECK_LT(end, layers_.size());
   float loss = 0;
+  int log_iter = 0;
+  bool log_on = false;
+  if(phase() == TRAIN){log_on = true;}
+  if(get_solver() != nullptr){log_iter = get_solver()->log_iter();}
+
   for (int i = start; i <= end; ++i) {
     // LOG(INFO) << " ****** [Forward] (" << i << ") Layer '" << layer_names_[i];
     // << "' FT " << Type_Name(layers_[i]->forward_type())
     // << " BT " << Type_Name(layers_[i]->backward_type());
+    if(get_solver() != nullptr && log_on) { LOG(WARNING)<<"["<<de<<"]["<<log_iter<<"][F]["<<layer_names_[i]<<"]START###"; }
     float layer_loss = layers_[i]->Forward(bottom_vecs_[i], top_vecs_[i]);
+    if(get_solver() != nullptr && log_on) { LOG(WARNING)<<"["<<de<<"]["<<log_iter<<"][F]["<<layer_names_[i]<<"]END###"; }
+
     loss += layer_loss;
     if (debug_info_) { ForwardDebugInfo(i); }
   }
@@ -724,12 +733,16 @@ void Net::BackwardFromTo(int start, int end) {
 void Net::BackwardFromToAu(int start, int end, bool apply_update) {
   CHECK_GE(end, 0);
   CHECK_LT(start, layers_.size());
+  int log_iter = get_solver()->log_iter();
+
   for (int i = start; i >= end; --i) {
     if (!layer_need_backward_[i]) {
       continue;
     }
 
+    LOG(WARNING)<<"["<<de<<"]["<<log_iter<<"][B]["<<layer_names_[i]<<"]START###";
     layers_[i]->Backward(top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i]);
+    LOG(WARNING)<<"["<<de<<"]["<<log_iter<<"][B]["<<layer_names_[i]<<"]END###";
 
     if (debug_info_) {
       BackwardDebugInfo(i);
@@ -748,6 +761,7 @@ void Net::BackwardFromToAu(int start, int end, bool apply_update) {
     }
   }
   if (apply_update) {
+    LOG(WARNING)<<"["<<de<<"]["<<log_iter<<"][N][ALLReduce]START####";
     reduction_queue_.push(END_OF_ITERATION);
   }
 }
@@ -868,6 +882,7 @@ void Net::ReduceAndUpdate() {
     if (param_id == END_OF_ITERATION) {
 #ifndef CPU_ONLY
       CUDA_CHECK(cudaStreamSynchronize(stream));
+      LOG(WARNING)<<"["<<de<<"]["<<get_solver()->log_iter()<<"][N][ALLReduce]END####";
       received_count = 0U;
       id_from = id_to = -1;
       au_ids.clear();

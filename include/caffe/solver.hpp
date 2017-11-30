@@ -47,7 +47,7 @@ class Solver {
   void Init();
   void InitTrainNet();
   void InitTestNets();
-
+  int de;
   // Client of the Solver optionally may call this in order to set the function
   // that the solver uses to see what action it should take (e.g. snapshot or
   // exit training early).
@@ -72,6 +72,7 @@ class Solver {
   shared_ptr<Net> net() { return net_; }
   const vector<shared_ptr<Net>>& test_nets() { return test_nets_; }
   int iter() const { return iter_; }
+  int log_iter() const { return log_iter_; }
   int relative_iter() const { return iter_ - iterations_restored_; }
   float total_lapse() const { return total_lapse_; }
   bool is_root() const { return rank_ == 0; }
@@ -144,6 +145,7 @@ class Solver {
   virtual const char* type() const { return ""; }
   virtual void PrintRate(float rate = 0) {}
   virtual void ApplyUpdate(int param_id, void* handle, bool clear_grads) = 0;
+  virtual float GetLearningRate() = 0;
 
  protected:
   string SnapshotFilename(const string extension);
@@ -168,6 +170,7 @@ class Solver {
   const SolverParameter param_;
   const Type data_type_;
   int iter_;
+  int log_iter_;
   int id_;
   float total_lapse_;
   int current_step_;
@@ -199,6 +202,7 @@ class Solver {
   Timer test_timer_;
   int iterations_last_;
   int iterations_restored_;
+  float rate_;
 
   DISABLE_COPY_MOVE_AND_ASSIGN(Solver);
 };

@@ -44,6 +44,7 @@ class Net {
   /// @brief Initialize a network with a NetParameter.
   void Init(const NetParameter& param);
 
+  int de;
   /**
    * @brief Run Forward with the input Blob%s already fed separately.
    *
@@ -241,13 +242,18 @@ class Net {
   /// @brief set a Solver and layers properties for this net
   void set_solver(Solver* s);
 
+  Solver* get_solver(){
+    return solver_;
+  }
+
+
   unsigned int batch_per_solver() const {
     return batch_per_solver_;
   }
 
   Solver* parent_solver() {
     return solver_;
-  };
+  }
 
   bool trained_layers_shared() const {
     return trained_layers_shared_;

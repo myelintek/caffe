@@ -58,6 +58,21 @@ float SGDSolver<Dtype>::GetLearningRate() {
   } else if (lr_policy == "sigmoid") {
     rate = this->param_.base_lr() / (1.F +
         exp(-this->param_.gamma() * (double(this->iter_ - this->param_.stepsize()))));
+  // ****************** fb method *****************
+  } else if (lr_policy == "fb_multi_coef") {
+    while (this->current_step_ < this->param_.fb_step_iter_size() &&
+        this->iter_ >= this->param_.fb_step_iter(this->current_step_)) {
+      this->current_step_++;
+      LOG_IF(ERROR, Caffe::root_solver()) << "[" << this->iter_ << "]"
+                << "[fb Multi lr] step " << this->current_step_ - 1
+                << ", lr coef " << (current_step_==1?1:this->param_.fb_step_coef(this->current_step_-2)) << " -> " << this->param_.fb_step_coef(this->current_step_-1);
+    }
+    if(current_step_ != 0){
+      rate = this->param_.base_lr() * this->param_.fb_step_coef(this->current_step_-1);
+    } else {
+      rate = this->param_.base_lr();
+    }
+  // ****************** fb method *****************
   } else {
     LOG(FATAL) << "Unknown learning rate policy: " << lr_policy;
   }
@@ -140,11 +155,11 @@ void SGDSolver<Dtype>::PrintRate(float rate) {
 // Note: this is asynchronous call
 template<typename Dtype>
 void SGDSolver<Dtype>::ApplyUpdate(int param_id, void* handle, bool clear_grads) {
-  float rate = GetLearningRate();  // TODO take it out
+  //float rate = GetLearningRate();  // TODO take it out
   ClipGradients(handle);
   Normalize(param_id, handle);
   Regularize(param_id, handle);
-  ComputeUpdateValue(param_id, handle, rate, clear_grads);
+  ComputeUpdateValue(param_id, handle, rate_, clear_grads);
 }
 
 template<typename Dtype>
