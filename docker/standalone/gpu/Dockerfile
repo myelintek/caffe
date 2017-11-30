@@ -54,7 +54,7 @@ RUN wget -O /opt/protobuf-python-3.2.0.tar.gz https://github.com/google/protobuf
 
 RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/myelintek/caffe.git . && \
     pip install --upgrade pip && \
-    for req in setuptools $(cat python/requirements.txt) pydot; do pip install $req; done && \
+    for req in setuptools easydict $(cat python/requirements.txt) pydot; do pip install $req; done && \
     mkdir build && cd build && \
     cmake -DUSE_CUDNN=1 -DUSE_NCCL=1 .. && \
     make -j"$(nproc)"
