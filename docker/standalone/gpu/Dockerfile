@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         doxygen \
+        g++ \
         git \
         wget \
         libatlas-base-dev \
@@ -15,12 +16,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libleveldb-dev \
         liblmdb-dev \
         libopencv-dev \
-        libprotobuf-dev \
         libsnappy-dev \
-        protobuf-compiler \
+        libtool \
+        make \
         python-dev \
         python-pip \
         python-scipy \
+        unzip \
         vim && \
     rm -rf /var/lib/apt/lists/*
 
@@ -37,6 +39,15 @@ RUN wget -O /opt/libnccl2.deb https://www.dropbox.com/s/n1vx60mqj8hi2ij/libnccl2
     wget -O /opt/libnccl-dev.deb https://www.dropbox.com/s/lkh26o02vq6802y/libnccl-dev.deb?dl=0 && \
     dpkg -i /opt/libnccl2.deb && \
     dpkg -i /opt/libnccl-dev.deb
+
+RUN wget -O /opt/protobuf-python-3.2.0.tar.gz https://github.com/google/protobuf/releases/download/v3.2.0/protobuf-python-3.2.0.tar.gz && \
+    tar -zxvf /opt/protobuf-python-3.2.0.tar.gz -C /opt/ && \
+    cd /opt/protobuf-3.2.0 && \
+    ./configure && \
+    make && \
+    make check && \
+    make install && \
+    ldconfig
 
 RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/myelintek/caffe.git . && \
     pip install --upgrade pip && \
