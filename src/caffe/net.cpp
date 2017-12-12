@@ -743,8 +743,8 @@ void Net::BackwardFromToAu(int start, int end, bool apply_update) {
       }
       const int param_id = layer_index_params_[make_pair(i, j)];
       if (param_owners_[param_id] < 0) {
-        int count = learnable_params()[param_id]->count()
-        int size = sizeof(learnable_params()[param_id]->diff_type())
+        int count = learnable_params()[param_id]->count();
+        int size = sizeof(learnable_params()[param_id]->diff_type());
         LOG_IF(INFO, Caffe::root_solver())
             << "[BackwardFromToAu] learnable_params()[param_id]->count() " << count
             << ", layer_name: " << layer_names_[i];
