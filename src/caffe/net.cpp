@@ -731,7 +731,6 @@ void Net::BackwardFromToAu(int start, int end, bool apply_update) {
 
     layers_[i]->Backward(top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i]);
 
-    BackwardDebugInfo(i);
     if (debug_info_) {
       BackwardDebugInfo(i);
     }
@@ -744,6 +743,13 @@ void Net::BackwardFromToAu(int start, int end, bool apply_update) {
       }
       const int param_id = layer_index_params_[make_pair(i, j)];
       if (param_owners_[param_id] < 0) {
+        int count = learnable_params()[param_id]->count()
+        int size = sizeof(learnable_params()[param_id]->diff_type())
+        LOG_IF(INFO, Caffe::root_solver())
+            << "[BackwardFromToAu] learnable_params()[param_id]->count() " << count
+            << ", layer_name: " << layer_names_[i];
+            << ", param_id: " << param_id
+            << ", sizeof(type): " << size;
         reduction_queue_.push(learnable_param_ids_[param_id]);
       }  // leave it to the owner otherwise
     }
@@ -897,12 +903,6 @@ void Net::Reduce(int param_id) {
   // until all have completed, but the current nature of
   // NCCL makes this unnecessary.
   // solver_->callback()->reduce_barrier();
-  int count = this->learnable_params()[param_id]->count()
-  int size = sizeof(this->learnable_params()[param_id]->diff_type())
-  LOG_IF(INFO, Caffe::root_solver())
-      << "[Reduce] learnable_params()[param_id]->count() " << count
-      << ", param_id: " << param_id
-      << ", sizeof(type): " << size;
 }
 
 void Net::ReduceBucket(size_t count, Type bucket_type, void* bucket) {
@@ -918,11 +918,6 @@ void Net::ReduceBucket(size_t count, Type bucket_type, void* bucket) {
   }
   Tensor::gpu_scal(count, bucket_type, bucket, 1.F / Caffe::solver_count(),
       solver_->callback()->cublas_handle(), true);
-  const shared_ptr<Blob>& param = bucket
-  int size = sizeof(param->diff_type())
-  LOG_IF(INFO, Caffe::root_solver())
-      << "[ReduceBucket] +count() " << count
-      << ", sizeof(type): " << size;
 }
 #endif
 
