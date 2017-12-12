@@ -747,7 +747,7 @@ void Net::BackwardFromToAu(int start, int end, bool apply_update) {
         int size = sizeof(learnable_params()[param_id]->diff_type());
         LOG_IF(INFO, Caffe::root_solver())
             << "[BackwardFromToAu] learnable_params()[param_id]->count() " << count
-            << ", layer_name: " << layer_names_[i];
+            << ", layer_name: " << layer_names_[i]
             << ", param_id: " << param_id
             << ", sizeof(type): " << size;
         reduction_queue_.push(learnable_param_ids_[param_id]);
