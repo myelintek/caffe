@@ -918,9 +918,10 @@ void Net::ReduceBucket(size_t count, Type bucket_type, void* bucket) {
   }
   Tensor::gpu_scal(count, bucket_type, bucket, 1.F / Caffe::solver_count(),
       solver_->callback()->cublas_handle(), true);
+  const shared_ptr<Blob>& param = bucket
+  int size = sizeof(param->diff_type())
   LOG_IF(INFO, Caffe::root_solver())
-      << "[ReduceBucket] learnable_params()[param_id]->count() " << count
-      << ", param_id: " << param_id
+      << "[ReduceBucket] +count() " << count
       << ", sizeof(type): " << size;
 }
 #endif
