@@ -678,6 +678,14 @@ float Net::ForwardFromTo(int start, int end) {
     float layer_loss = layers_[i]->Forward(bottom_vecs_[i], top_vecs_[i]);
     loss += layer_loss;
     if (debug_info_) { ForwardDebugInfo(i); }
+
+    const vector<Blob*>& bottom = bottom_vecs_[i];
+    const vector<Blob*>& top = top_vecs_[i];
+    LOG_IF(INFO, Caffe::root_solver())
+            << "[ForwardFromTo] bottom[0]->count() " << bottom[0]->count()
+            << ", layer_name: " << layer_names_[i]
+            << ", top[0]->count() " << top[0]->count()
+            << ".";
   }
   ++infer_count_;
   return loss;
@@ -749,7 +757,8 @@ void Net::BackwardFromToAu(int start, int end, bool apply_update) {
             << "[BackwardFromToAu] learnable_params()[param_id]->count() " << count
             << ", layer_name: " << layer_names_[i]
             << ", param_id: " << param_id
-            << ", sizeof(type): " << size;
+            << ", sizeof(type): " << size
+            << ".";
         reduction_queue_.push(learnable_param_ids_[param_id]);
       }  // leave it to the owner otherwise
     }
