@@ -929,9 +929,11 @@ void Net::ForwardDebugInfo(const int layer_id) {
     const Blob& blob = *top_vecs_[layer_id][top_id];
     const string& blob_name = blob_names_[top_id_vecs_[layer_id][top_id]];
     const double data_abs_val_mean = blob.asum_data() / blob.count();
+    const Blob test;
     LOG_IF(INFO, Caffe::root_solver())
         << " -> top blob " << blob_name
         << ", count: " << blob.count()
+        << " ,sizeof(Blob): " << sizeof(test)
         << " data: " << data_abs_val_mean;
   }
   for (int param_id = 0; param_id < layers_[layer_id]->blobs().size();
